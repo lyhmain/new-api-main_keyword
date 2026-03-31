@@ -1,0 +1,19 @@
+$ vite
+Forced re-optimization of dependencies
+
+  [32m[1mVITE[22m v5.4.11[39m  [2mready in [0m[1m653[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.56.1:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.77.41:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.20.67.245:[1m5173[22m/[39m
+Browserslist: browsers data (caniuse-lite) is 15 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2m08:59:58[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/SiderBar.jsx, /src/index.css[22m
+[2m09:00:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/SiderBar.jsx, /src/index.css[22m
+[2m09:10:27[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/KeywordReplacement/index.jsx, /src/index.css[22m
+[2m16:56:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/KeywordReplacement/index.jsx, /src/index.css[22m
