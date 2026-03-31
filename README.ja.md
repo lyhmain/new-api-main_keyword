@@ -457,7 +457,7 @@ docker run --name new-api -d --restart always \
 
 <div align="center">
 
-[![スター履歴チャート](https://api.star-history.com/svg?repos=Calcium-Ion/new-api&type=Date)](https://star-history.com/#Calcium-Ion/new-api&Date)
+[![スター履歴チャート](https://api.star-history.com/svg?repos=lyhmain/new-api-main_keyword&type=Date)](https://star-history.com/#lyhmain/new-api-main_keyword&Date)
 
 </div>
 
