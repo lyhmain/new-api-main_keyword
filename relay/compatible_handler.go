@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/samber/lo"
@@ -52,6 +53,40 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 				originalContent := request.Messages[i].StringContent()
 				replacedContent := service.ChineseSensitiveWordReplace(originalContent)
 				request.Messages[i].SetStringContent(replacedContent)
+			}
+		}
+	}
+
+	// Apply keyword replacement if enabled
+	if setting.ShouldApplyKeywordReplacement() {
+		for i := range request.Messages {
+			if request.Messages[i].IsStringContent() {
+				originalContent := request.Messages[i].StringContent()
+				result := service.KeywordReplace(originalContent, setting.ShouldApplyKeywordAudit())
+				if result.Replaced {
+					request.Messages[i].SetStringContent(result.Text)
+					logger.LogInfo(c, fmt.Sprintf("keyword replaced: %s", result.MatchedKeywords))
+				}
+				if result.Replaced && setting.ShouldApplyKeywordAudit() {
+					// Log keyword audit for monitoring
+					service.CheckKeywordAudit(
+						originalContent,
+						uint(info.UserId),
+						func() string { u, _ := model.GetUsernameById(info.UserId, false); return u }(),
+						uint(info.ChannelId),
+						"",
+						info.OriginModelName,
+						"chat_completion",
+						c.ClientIP(),
+						c.Request.UserAgent(),
+						uint(info.TokenId),
+						"",
+					)
+				}
+				if result.Blocked {
+					logger.LogWarn(c, fmt.Sprintf("keyword audit triggered and blocked: %s", result.MatchedKeywords))
+					return types.NewErrorWithStatusCode(fmt.Errorf("keyword audit triggered"), types.ErrorCodeSensitiveWordsDetected, http.StatusForbidden, types.ErrOptionWithSkipRetry())
+				}
 			}
 		}
 	}

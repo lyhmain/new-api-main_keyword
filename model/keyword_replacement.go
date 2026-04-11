@@ -1,6 +1,7 @@
 package model
 
 import (
+	"regexp"
 	"sync"
 	"time"
 
@@ -121,7 +122,7 @@ func GetKeywordReplacementsCache() ([]KeywordReplacement, error) {
 	keywordReplacementsCacheMutex.RLock()
 	defer keywordReplacementsCacheMutex.RUnlock()
 
-	if len(keywordReplacementsCache) > 0 && time.Since(keywordReplacementsCacheTime) < 5*time.Second {
+	if len(keywordReplacementsCache) > 0 && time.Since(keywordReplacementsCacheTime) < 30*time.Second {
 		return keywordReplacementsCache, nil
 	}
 
@@ -129,7 +130,7 @@ func GetKeywordReplacementsCache() ([]KeywordReplacement, error) {
 	keywordReplacementsCacheMutex.Lock()
 	defer keywordReplacementsCacheMutex.Unlock()
 
-	if len(keywordReplacementsCache) > 0 && time.Since(keywordReplacementsCacheTime) < 5*time.Second {
+	if len(keywordReplacementsCache) > 0 && time.Since(keywordReplacementsCacheTime) < 30*time.Second {
 		return keywordReplacementsCache, nil
 	}
 
@@ -149,4 +150,61 @@ func ClearKeywordReplacementsCache() {
 	defer keywordReplacementsCacheMutex.Unlock()
 	keywordReplacementsCache = nil
 	keywordReplacementsCacheTime = time.Time{}
+}
+
+// CompiledKeywordReplacement holds a keyword replacement with pre-compiled regex
+type CompiledKeywordReplacement struct {
+	KeywordReplacement
+	Regex *regexp.Regexp // Pre-compiled regex, nil for non-regex rules
+}
+
+// CompiledKeywordReplacementsCache is a cache of compiled keyword replacements
+var CompiledKeywordReplacementsCache []CompiledKeywordReplacement
+var CompiledKeywordReplacementsCacheTime time.Time
+var CompiledKeywordReplacementsCacheMutex sync.RWMutex
+
+// GetCompiledKeywordReplacementsCache returns compiled keyword replacements for efficient matching
+func GetCompiledKeywordReplacementsCache() ([]CompiledKeywordReplacement, error) {
+	CompiledKeywordReplacementsCacheMutex.RLock()
+	if len(CompiledKeywordReplacementsCache) > 0 && time.Since(CompiledKeywordReplacementsCacheTime) < 30*time.Second {
+		defer CompiledKeywordReplacementsCacheMutex.RUnlock()
+		return CompiledKeywordReplacementsCache, nil
+	}
+	CompiledKeywordReplacementsCacheMutex.RUnlock()
+
+	CompiledKeywordReplacementsCacheMutex.Lock()
+	defer CompiledKeywordReplacementsCacheMutex.Unlock()
+
+	if len(CompiledKeywordReplacementsCache) > 0 && time.Since(CompiledKeywordReplacementsCacheTime) < 30*time.Second {
+		return CompiledKeywordReplacementsCache, nil
+	}
+
+	replacements, err := GetEnabledKeywordReplacements()
+	if err != nil {
+		return nil, err
+	}
+
+	compiled := make([]CompiledKeywordReplacement, 0, len(replacements))
+	for _, kr := range replacements {
+		var compiledKR CompiledKeywordReplacement
+		compiledKR.KeywordReplacement = kr
+
+		if kr.IsRegex {
+			pattern := kr.Keyword
+			if !kr.CaseSensitive {
+				pattern = "(?i)" + pattern
+			}
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				continue
+			}
+			compiledKR.Regex = re
+		}
+		compiled = append(compiled, compiledKR)
+	}
+
+	CompiledKeywordReplacementsCache = compiled
+	CompiledKeywordReplacementsCacheTime = time.Now()
+
+	return compiled, nil
 }

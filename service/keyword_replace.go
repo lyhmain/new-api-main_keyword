@@ -39,7 +39,7 @@ func KeywordReplace(text string, enableAudit bool) ReplaceResult {
 		return result
 	}
 
-	replacements, err := model.GetKeywordReplacementsCache()
+	replacements, err := model.GetCompiledKeywordReplacementsCache()
 	if err != nil || len(replacements) == 0 {
 		return result
 	}
@@ -55,20 +55,9 @@ func KeywordReplace(text string, enableAudit bool) ReplaceResult {
 		keyword := kr.Keyword
 		replacement := kr.Replacement
 
-		if kr.IsRegex {
-			var pattern string
-			if kr.CaseSensitive {
-				pattern = keyword
-			} else {
-				pattern = "(?i)" + keyword
-			}
-
-			re, err := regexp.Compile(pattern)
-			if err != nil {
-				continue
-			}
-
-			loc := re.FindStringIndex(text)
+		if kr.IsRegex && kr.Regex != nil {
+			// Use pre-compiled regex from cache
+			loc := kr.Regex.FindStringIndex(text)
 			if loc != nil {
 				matches = append(matches, KeywordMatch{
 					Keyword:     keyword,
@@ -152,7 +141,7 @@ func ChineseKeywordReplace(text string) string {
 		return text
 	}
 
-	replacements, err := model.GetKeywordReplacementsCache()
+	replacements, err := model.GetCompiledKeywordReplacementsCache()
 	if err != nil || len(replacements) == 0 {
 		return text
 	}
@@ -198,7 +187,7 @@ func CheckKeywordAudit(text string, userID uint, username string, channelID uint
 		return
 	}
 
-	replacements, err := model.GetKeywordReplacementsCache()
+	replacements, err := model.GetCompiledKeywordReplacementsCache()
 	if err != nil || len(replacements) == 0 {
 		return
 	}
@@ -289,7 +278,7 @@ func applyReplacements(text string, matches []KeywordMatch) string {
 }
 
 func GetCustomReplacementMap() map[string]string {
-	replacements, err := model.GetKeywordReplacementsCache()
+	replacements, err := model.GetCompiledKeywordReplacementsCache()
 	if err != nil || len(replacements) == 0 {
 		return nil
 	}
@@ -306,4 +295,71 @@ func GetCustomReplacementMap() map[string]string {
 	}
 
 	return customMap
+}
+
+// ReplaceKeywordsInResponse applies keyword replacement to response content
+// Uses pre-compiled regex for better performance
+func ReplaceKeywordsInResponse(responseBody []byte) ([]byte, bool) {
+	if !setting.ShouldApplyResponseKeywordReplacement() {
+		return responseBody, false
+	}
+
+	compiledReplacements, err := model.GetCompiledKeywordReplacementsCache()
+	if err != nil || len(compiledReplacements) == 0 {
+		return responseBody, false
+	}
+
+	modified := false
+	result := string(responseBody)
+	lowerResult := strings.ToLower(result)
+
+	for _, kr := range compiledReplacements {
+		if !kr.Enabled {
+			continue
+		}
+
+		keyword := kr.Keyword
+		replacement := kr.Replacement
+
+		if kr.IsRegex && kr.Regex != nil {
+			if kr.Regex.MatchString(result) {
+				result = kr.Regex.ReplaceAllString(result, replacement)
+				modified = true
+				lowerResult = strings.ToLower(result)
+			}
+		} else if !kr.IsRegex {
+			if kr.CaseSensitive {
+				if strings.Contains(result, keyword) {
+					result = strings.ReplaceAll(result, keyword, replacement)
+					modified = true
+				}
+			} else {
+				lowerKeyword := strings.ToLower(keyword)
+				if strings.Contains(lowerResult, lowerKeyword) {
+					var builder strings.Builder
+					lastPos := 0
+					for {
+						idx := strings.Index(lowerResult[lastPos:], lowerKeyword)
+						if idx == -1 {
+							builder.WriteString(result[lastPos:])
+							break
+						}
+						actualPos := lastPos + idx
+						builder.WriteString(result[lastPos:actualPos])
+						builder.WriteString(replacement)
+						lastPos = actualPos + len(keyword)
+						modified = true
+					}
+					result = builder.String()
+					lowerResult = strings.ToLower(result)
+				}
+			}
+		}
+	}
+
+	if modified {
+		return []byte(result), true
+	}
+
+	return responseBody, false
 }

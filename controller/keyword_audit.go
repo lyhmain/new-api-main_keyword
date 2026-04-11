@@ -251,7 +251,7 @@ func GetKeywordAuditStats(c *gin.Context) {
 }
 
 func DeleteOldKeywordAudits(c *gin.Context) {
-	daysStr := c.DefaultQuery("days", "30")
+	daysStr := c.DefaultQuery("days", "7")
 	days, err := strconv.Atoi(daysStr)
 	if err != nil || days < 1 {
 		c.JSON(http.StatusBadRequest, gin.H{

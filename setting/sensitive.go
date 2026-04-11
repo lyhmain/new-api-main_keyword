@@ -9,7 +9,7 @@ var CheckSensitiveOnPromptEnabled = true
 
 var CheckSensitiveOnCompletionEnabled = true
 
-var StopOnSensitiveEnabled = true
+var StopOnSensitiveEnabled = false
 
 var StreamCacheQueueLength = 0
 
@@ -62,4 +62,26 @@ func IsCustomReplacementEnabled() bool {
 
 func SetCustomReplacementEnabled(enabled bool) {
 	CustomReplacementEnabled = enabled
+}
+
+// Keyword replacement settings
+var KeywordReplacementEnabled = true
+var KeywordAuditEnabled = true
+
+// ShouldApplyKeywordReplacement returns whether keyword replacement should be applied
+func ShouldApplyKeywordReplacement() bool {
+	return KeywordReplacementEnabled
+}
+
+// ShouldApplyKeywordAudit returns whether keyword audit should be applied
+func ShouldApplyKeywordAudit() bool {
+	return KeywordAuditEnabled
+}
+
+// ResponseKeywordReplacementEnabled - whether to replace keywords in AI responses
+var ResponseKeywordReplacementEnabled = true
+
+// ShouldApplyResponseKeywordReplacement returns whether response keyword replacement should be applied
+func ShouldApplyResponseKeywordReplacement() bool {
+	return ResponseKeywordReplacementEnabled
 }
